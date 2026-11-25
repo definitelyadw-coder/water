@@ -21,8 +21,33 @@ jobs:
           cp ci/android/java/com/facefit/app/*.java $APP/java/com/facefit/app/
           cp -r ci/android/res/. $APP/res/
           python3 ci/android/patch_manifest.py $APP/AndroidManifest.xml
-      - run: mkdir -p ~/.android && cp ci/debug.keystore ~/.android/debug.keystore
+      - name: Подпись ключом из репозитория
+        run: |
+          mkdir -p ~/.android && cp ci/debug.keystore ~/.android/debug.keystore
+          python3 - <<'PY'
+          import os,re
+          p='android/app/build.gradle'
+          s=open(p,encoding='utf-8').read()
+          ks=os.path.abspath('ci/debug.keystore')
+          blk=('\n    signingConfigs {\n        debug {\n            storeFile file("%s")\n'
+               '            storePassword "android"\n            keyAlias "androiddebugkey"\n'
+               '            keyPassword "android"\n        }\n    }\n') % ks
+          if 'signingConfigs' not in s:
+              s=re.sub(r'(^android\s*\{)',lambda m:m.group(1)+blk,s,count=1,flags=re.M)
+          open(p,'w',encoding='utf-8').write(s)
+          PY
+          grep -n -A8 "signingConfigs" android/app/build.gradle
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Проверить отпечаток ключа
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          WANT=$(keytool -list -v -keystore ci/debug.keystore -storepass android 2>/dev/null | grep 'SHA1:' | awk '{print $2}')
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          GOT=$($BT/apksigner verify --print-certs $APK | grep 'SHA-1' | sed 's/.*: //' | tr 'a-f' 'A-F' | sed 's/../&:/g;s/:$//')
+          echo "SHA-1 для Google OAuth: $WANT"
+          printf '### SHA-1 для Google OAuth\n`%s`\n' "$WANT" >> $GITHUB_STEP_SUMMARY
+          echo "SHA-1 в APK: $GOT"
+          [ "$WANT" = "$GOT" ] || { echo "::error::APK подписан не ключом из репозитория"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: FaceFit-apk
