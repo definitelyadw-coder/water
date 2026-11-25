@@ -70,16 +70,24 @@ button{font:inherit;border:0;cursor:pointer;transition:transform .15s,filter .2s
 #acc b{display:block;font-size:14px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#acc small{display:block;color:var(--mu);font-size:12px;margin-top:2px;line-height:1.3}
 #acc button{flex:none;padding:10px 14px;border-radius:13px;background:var(--ink);color:var(--bg);font-weight:800;font-size:13px}#acc button.g{background:var(--c2);color:var(--ink)}
 #acc button:disabled{opacity:.5}
+#stage{position:relative}
+#cart{display:none;margin-bottom:12px}.cm #cart{display:block}
+#cv{aspect-ratio:16/9;background:#000;border-radius:20px;overflow:hidden}
+#cv iframe,#cv video{width:100%;height:100%;border:0;display:block}
+.cm .vid{position:absolute;top:8px;right:8px;width:36%;z-index:2;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+#lnk{flex:1;min-width:0;height:46px;border:1px solid var(--ln);background:var(--c2);color:var(--ink);border-radius:14px;padding:0 12px;font:inherit;font-size:14px}
+#cmc .btn{height:46px;padding:0 18px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head><body>
 <div class="top"><div><h1>Face<span>Fit</span></h1><div id="dt"></div></div><div class="chip" id="sub"></div></div>
 <div class="days" id="days"></div>
 <div class="hero"><div class="hr"><svg width="72" height="72"><circle class="t" cx="36" cy="36" r="31"/><circle class="p" id="hp" cx="36" cy="36" r="31" stroke-dasharray="194.8" stroke-dashoffset="194.8"/></svg><em id="hn"></em></div><div><b id="ht"></b><small id="hs"></small></div></div>
 <div class="card" id="run" style="display:none"><div id="rn"></div>
-<div class="vid"><video id="rv" muted loop playsinline webkit-playsinline preload="auto"></video></div>
+<div id="stage"><div id="cart"><div id="cv"></div></div><div class="vid"><video id="rv" muted loop playsinline webkit-playsinline preload="auto"></video></div></div>
 <div class="row"><div class="ring"><svg width="100" height="100"><circle class="t" cx="50" cy="50" r="45"/><circle id="pr" cx="50" cy="50" r="45" stroke-dasharray="282.7" stroke-dashoffset="0"/></svg><div id="tm"></div></div><div style="flex:1"><div class="dots" id="dots"></div><div id="rt"></div></div></div>
 <div class="btns"><button class="btn g" onclick="stopT()">Стоп</button><button class="btn" onclick="finish()">Готово ✓</button></div></div>
 <div class="card" id="acc"></div>
+<div class="card" id="cmc"><div class="w"><div><b>🎬 Тренировка под мультик</b><small>Вставь ссылку (YouTube или .mp4): все упражнения растянутся на длину видео</small></div></div><div style="display:flex;gap:8px;margin:10px 6px 4px"><input id="lnk" type="url" inputmode="url" placeholder="https://youtu.be/…" autocomplete="off"><button class="btn" onclick="startC()" aria-label="Старт">▶</button></div></div>
 <h2>Упражнения на сегодня</h2>
 <div id="list"></div>
 <h2 style="margin-top:20px">Вода</h2>
@@ -166,8 +174,8 @@ function start(i){stopT();const n=SETS[new Date().getDay()];cur={i,set:1,n,end:D
   if(cur.left<=0){if(cur.set>=cur.n){finish();return}cur.set++;cur.end=Date.now()+EX[i][2]*1000;cur.left=EX[i][2];navigator.vibrate&&navigator.vibrate(200)}
   tick()},250);run.scrollIntoView({behavior:"smooth",block:"start"})}
 function tick(){const t=EX[cur.i][2];rn.textContent=EX[cur.i][0];rt.innerHTML="Подход <b>"+cur.set+" из "+cur.n+"</b><br>"+EX[cur.i][1];tm.textContent=cur.left;pr.style.strokeDashoffset=282.7*(1-cur.left/t);dots.innerHTML=Array.from({length:cur.n},(_,k)=>`<i class="${k<cur.set?"on":""}"></i>`).join("")}
-function stopT(){clearInterval(T);rv.pause();run.style.display="none";try{WL&&WL.release();WL=null}catch(e){}}
-function finish(){const s=st();if(cur&&!s.done.includes(cur.i))s.done.push(cur.i);save();stopT();navigator.vibrate&&navigator.vibrate([200,100,200]);render()}
+function stopT(){clearInterval(T);clearInterval(CT);CT=null;if(CP){CP.kill();CP=null}CS=null;cv.innerHTML="";run.classList.remove("cm");rv.pause();run.style.display="none";try{WL&&WL.release();WL=null}catch(e){}}
+function finish(){if(CS){cDone(false);return}const s=st();if(cur&&!s.done.includes(cur.i))s.done.push(cur.i);save();stopT();navigator.vibrate&&navigator.vibrate([200,100,200]);render()}
 function addW(){st().w++;save();render();const c=gl.closest(".card");c.classList.add("pop");setTimeout(()=>c.classList.remove("pop"),600)}
 function subW(){const s=st();if(s.w>0){s.w--;save();render()}}
 const WB=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.WidgetBridge;
@@ -182,5 +190,56 @@ async function notif(){
  const arr=[];for(let h=8;h<=23;h++)arr.push({id:h,channelId:"water2",title:"💧 Пора попить воды",body:"Стакан воды — и продолжай!",schedule:{on:{hour:h,minute:0},allowWhileIdle:true}});
  await L.schedule({notifications:arr});localStorage.nf2=1;alert("Готово: напоминания каждый час 8:00–23:00")}catch(e){alert("Ошибка: "+e)}
 }
+// ===== Тренировка под мультик: длина всех упражнений = длина видео =====
+let CT=null,CP=null,CS=null;
+const mmss=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+function ytId(u){const m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/);return m&&m[1]}
+function loadYT(){return new Promise((ok,no)=>{if(window.YT&&YT.Player)return ok();
+ const p=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{p&&p();ok()};
+ const e=document.createElement("script");e.src="https://www.youtube.com/iframe_api";e.onerror=()=>no(new Error("net"));document.head.appendChild(e)})}
+async function startC(){
+ const u=lnk.value.trim();if(!u){alert("Вставь ссылку на мультик");return}
+ const id=ytId(u),direct=/\.(mp4|webm|mov|m3u8)(\?|#|$)/i.test(u);
+ if(!id&&!direct){alert("Поддерживаются ссылки YouTube и прямые ссылки на видеофайл (.mp4, .webm)");return}
+ localStorage.cl=u;stopT();
+ const n=SETS[new Date().getDay()];
+ CS=[];EX.forEach((e,i)=>{for(let k=1;k<=n;k++)CS.push({i,k,w:e[2]})});
+ const W=CS.reduce((a,x)=>a+x.w,0);let q=0;CS.forEach(x=>{x.a=q/W;q+=x.w;x.b=q/W});
+ cur={i:0,set:1,n,seg:-1,vi:-1};run.style.display="block";run.classList.add("cm");wake();
+ rn.textContent="Загружаю мультик…";rt.textContent="";tm.textContent="…";dots.innerHTML="";pr.style.strokeDashoffset=282.7;
+ cv.innerHTML="";
+ if(direct){
+  const v=document.createElement("video");v.src=u;v.controls=true;v.playsInline=true;v.setAttribute("webkit-playsinline","");cv.appendChild(v);
+  v.onerror=()=>{alert("Не удалось загрузить видео по этой ссылке");stopT()};
+  CP={time:()=>v.currentTime,dur:()=>v.duration,ended:()=>v.ended,kill:()=>{v.pause();v.removeAttribute("src");v.load()}};
+  v.play().catch(()=>{});
+ }else{
+  try{await loadYT()}catch(e){alert("Нет интернета или YouTube недоступен");stopT();return}
+  if(!CS)return;
+  const d=document.createElement("div");cv.appendChild(d);
+  const p=new YT.Player(d,{videoId:id,playerVars:{playsinline:1,rel:0,modestbranding:1,origin:location.origin},events:{
+   onReady:e=>e.target.playVideo(),
+   onError:e=>{alert("YouTube не даёт показать это видео здесь (код "+e.data+"). Попробуй другое видео или прямую ссылку на .mp4");stopT()}}});
+  CP={time:()=>p.getCurrentTime(),dur:()=>p.getDuration(),ended:()=>p.getPlayerState()===0,kill:()=>{try{p.destroy()}catch(e){}}};
+ }
+ CT=setInterval(cTick,250);
+ run.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function cTick(){
+ if(!CP||!CS)return;let D=0,t=0;try{D=CP.dur();t=CP.time()}catch(e){return}
+ if(!(D>0)||!isFinite(D))return;
+ if(CP.ended()||t>=D-0.3){cDone(true);return}
+ let s=CS.findIndex(x=>t/D<x.b);if(s<0)s=CS.length-1;const x=CS[s];
+ if(cur.seg!==s){if(cur.seg>=0&&navigator.vibrate)navigator.vibrate(200);cur.seg=s}
+ if(cur.vi!==x.i){cur.vi=x.i;rv.poster="v/"+EX[x.i][3]+".jpg";rv.src="v/"+EX[x.i][3]+".mp4";rv.play().catch(()=>{})}
+ cur.i=x.i;cur.set=x.k;
+ const segLen=(x.b-x.a)*D,left=Math.max(0,Math.ceil(x.b*D-t));
+ rn.textContent=EX[x.i][0];
+ rt.innerHTML="Подход <b>"+x.k+" из "+cur.n+"</b> · упражнение "+(x.i+1)+"/"+EX.length+"<br>"+EX[x.i][1]+"<br>🎬 "+mmss(t)+" / "+mmss(D);
+ tm.textContent=left;pr.style.strokeDashoffset=282.7*(1-Math.min(1,left/segLen));
+ dots.innerHTML=Array.from({length:cur.n},(_,k)=>`<i class="${k<x.k?"on":""}"></i>`).join("");
+}
+function cDone(all){const s=st(),lim=all?EX.length:cur.i;for(let i=0;i<lim;i++)if(!s.done.includes(i))s.done.push(i);save();stopT();navigator.vibrate&&navigator.vibrate([200,100,200]);render()}
+lnk.value=localStorage.cl||"";
 render();takeW();if(A)sync();document.addEventListener('visibilitychange',()=>{if(!document.hidden){takeW();if(A)sync()}});if(!localStorage.nf2)setTimeout(notif,800);
 </script></body></html>
