@@ -14,12 +14,15 @@ jobs:
       - run: |
           sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />#' android/app/src/main/AndroidManifest.xml
           npx cap sync android
+      - name: Add widgets
+        run: |
+          APP=android/app/src/main
+          mkdir -p $APP/java/com/facefit/app
+          cp ci/android/java/com/facefit/app/*.java $APP/java/com/facefit/app/
+          cp -r ci/android/res/. $APP/res/
+          python3 ci/android/patch_manifest.py $APP/AndroidManifest.xml
       - run: mkdir -p ~/.android && cp ci/debug.keystore ~/.android/debug.keystore
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
-      - name: Show APK signing SHA-1
-        run: |
-          echo "### SHA-1 / SHA-256 подписи APK" >> $GITHUB_STEP_SUMMARY
-          keytool -printcert -jarfile android/app/build/outputs/apk/debug/app-debug.apk | grep -E "SHA1|SHA256" | tee -a $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         with:
           name: FaceFit-apk
