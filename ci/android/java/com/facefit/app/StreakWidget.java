@@ -11,6 +11,8 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.widget.RemoteViews;
 
+// Картинка уже содержит текст: не всё сделано -> стакан «Полуксмаксим?»,
+// всё сделано -> календарь «Жду вас завтра!». Число дней рисуем справа от огонька.
 public class StreakWidget extends AppWidgetProvider {
 
     @Override
@@ -34,27 +36,32 @@ public class StreakWidget extends AppWidgetProvider {
         Bitmap src = BitmapFactory.decodeResource(r, done ? R.drawable.w_bg_done : R.drawable.w_bg_glass);
         Bitmap out = src.copy(Bitmap.Config.ARGB_8888, true);
         float W = out.getWidth(), H = out.getHeight();
+
         String s = String.valueOf(Math.max(0, Math.min(streak, 9999)));
         Bitmap[] ds = new Bitmap[s.length()];
         float[] w = new float[s.length()];
-        float dh = H * 0.17f, total = 0;
+        float dh = H * 0.15f, total = 0;
         for (int i = 0; i < s.length(); i++) {
             int rid = r.getIdentifier("w_d" + s.charAt(i), "drawable", c.getPackageName());
             ds[i] = BitmapFactory.decodeResource(r, rid);
             w[i] = ds[i].getWidth() * dh / ds[i].getHeight() * 0.92f;
             total += w[i];
         }
-        float maxW = W * 0.8f;
+        float maxW = W * 0.40f;
         if (total > maxW) {
             float k = maxW / total;
             dh *= k;
             total *= k;
             for (int i = 0; i < w.length; i++) w[i] *= k;
         }
+
+        // Огонёк: правый край и вертикальный центр (доли картинки)
+        float flameRight = done ? 0.447f : 0.430f;
+        float cy = H * (done ? 0.137f : 0.135f);
+        float x = W * (flameRight + 0.028f);
+
         Canvas cv = new Canvas(out);
         Paint p = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
-        float cy = H * (done ? 0.372f : 0.378f);
-        float x = (W - total) / 2f;
         for (int i = 0; i < ds.length; i++) {
             float full = w[i] / 0.92f;
             float off = (full - w[i]) / 2f;
