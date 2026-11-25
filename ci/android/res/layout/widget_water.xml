@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/w_water_bg"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="12dp">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="💧 Вода"
+        android:textColor="#B9B3E6"
+        android:textSize="13sp" />
+    <TextView
+        android:id="@+id/w_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0/8"
+        android:textColor="#FFB02E"
+        android:textSize="32sp"
+        android:textStyle="bold" />
+    <ProgressBar
+        android:id="@+id/w_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="8dp"
+        android:max="100"
+        android:progressTint="#FFB02E"
+        android:progressBackgroundTint="#3A3668" />
+    <TextView
+        android:id="@+id/w_add"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/w_btn_bg"
+        android:gravity="center"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:text="+ стакан"
+        android:textColor="#2A1500"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</LinearLayout>
