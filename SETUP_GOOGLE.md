@@ -13,7 +13,7 @@
 2. **Web client ID**: Authentication → Google → Web SDK configuration → скопируй *Web client ID*.
 3. **Android client** (console.cloud.google.com → APIs & Services → Credentials → Create OAuth client ID → Android):
    - Package name: `com.facefit.app`
-   - SHA-1: `0E:1A:F9:DB:2A:06:DB:EF:7F:D1:1C:55:29:75:30:41:0A:CF:18:0E` (ключ лежит в `ci/debug.keystore`, сборка всегда им подписывается)
+   - SHA-1: `AE:F5:FB:D1:79:CB:0E:F8:8A:A2:2E:9B:20:E3:8E:B8:3E:99:2C:89` (ключ лежит в `ci/debug.keystore`, сборка всегда им подписывается)
    - Если экран согласия в режиме Testing — добавь свой Gmail в Test users.
 4. В `www/index.html` заполни `const CFG={apiKey:"…",projectId:"…",webClientId:"…"}`.
 5. Запушь — GitHub Actions соберёт APK.
